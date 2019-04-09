@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-    <name>driver_stim300</name>
+    <name>usm_stim300_driver</name>
     <version>0.0.0</version>
-    <description>The drivers-imu_stim300 package</description>
+    <description>C++ driver for the STIM300 IMU</description>
 
 
     <maintainer email="andrevaa@stud.ntnu.no">vortex</maintainer>

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5.1)
-project(driver_stim300)
+project(usm_stim300_driver)
 
 set(CMAKE_CXX_STANDARD 14)
 
@@ -25,11 +25,11 @@ catkin_package(
         CATKIN_DEPENDS sensor_msgs
 )
 
-add_executable(stim300_driver_node src/stim300_driver_node.cpp)
-target_include_directories(stim300_driver_node
+add_executable(usm_stim300_driver_node src/stim300_driver_node.cpp)
+target_include_directories(usm_stim300_driver_node
         PRIVATE
         ${catkin_INCLUDE_DIRS})
-target_link_libraries(stim300_driver_node PRIVATE stim300_driver_lib ${catkin_LIBRARIES})
+target_link_libraries(usm_stim300_driver_node PRIVATE stim300_driver_lib ${catkin_LIBRARIES})
 
 
 if (CATKIN_ENABLE_TESTING)
