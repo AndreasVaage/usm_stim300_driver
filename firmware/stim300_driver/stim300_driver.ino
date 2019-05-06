@@ -38,7 +38,8 @@ volatile byte camera0_sync_flag = LOW;
 volatile byte camera1_sync_flag = LOW;
 volatile byte camera0_leak = LOW;
 volatile byte camera1_leak = LOW;
-
+volatile unsigned long frame0_count = 0;
+volatile unsigned long frame1_count = 0;
 
 // Set the shield settings
 byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
@@ -48,7 +49,7 @@ IPAddress ip(169, 254, 0, 177); // think it have to be same subnet as server
 IPAddress server(169,254,0,64);
 //IPAddress server(10,22,74,185);
 // Set the rosserial socket server port
-const uint16_t serverPort = 11411;|
+const uint16_t serverPort = 11411;
 
 ros::NodeHandle nh;
 // Make a chatter publisher
@@ -137,9 +138,23 @@ void setup()
   nh.advertise(chatter);
   nh.advertise(cam0_time_publisher);
   nh.advertise(cam1_time_publisher);
+
+  // slow start
+  size_t start_time = millis();
+  while (millis() - start_time < 30000)
+  {
+    update(100);
+    nh.spinOnce();
+  }
 }
 
 void loop()
+{
+  update(10);
+  nh.spinOnce();
+}
+
+void update(int n_imu_per_cam_msg)
 {
   if (stim_300_sync_flag == HIGH)
   {
@@ -161,25 +176,25 @@ void loop()
         {
           chatter.publish( &datagram_msg );
         }
-        else 
+        else
         {
-          //Serial.println("Not Connected");
+          // Serial.println("Not Connected");
         }
       }
       else
       {
-        //Serial.println("Not correct amount of data");
-        //Serial.println(n_read_bytes);
+        // Serial.println("Not correct amount of data");
+        // Serial.println(n_read_bytes);
       }
     }
     stim_300_sync_flag = LOW;
   }
-  
+
   if (camera0_sync_flag == HIGH)
   {
     cam0_time_msg.stamp = nh.now();
     cam0_time_publisher.publish( &cam0_time_msg);
-    cam0_time_msg.seq++;
+    cam0_time_msg.seq = frame0_count;
     camera0_sync_flag = LOW;
   }
 
@@ -187,12 +202,11 @@ void loop()
   {
     cam1_time_msg.stamp = nh.now();
     cam1_time_publisher.publish( &cam1_time_msg);
-    cam1_time_msg.seq++;
+    cam1_time_msg.seq = frame1_count;
     camera1_sync_flag = LOW;
   }
 
-  
-  if (imu_counter >= 10)
+  if (imu_counter >= n_imu_per_cam_msg)
   {
     digitalWrite(camera_trigger_pin, HIGH);
     imu_counter = 0;
@@ -201,8 +215,6 @@ void loop()
   {
     digitalWrite(camera_trigger_pin, LOW);
   }
-  
-  nh.spinOnce();
 }
 
 void registerIMUTime()
@@ -211,10 +223,12 @@ void registerIMUTime()
 }
 void registerCam0Time()
 {
+  frame0_count++;
   camera0_sync_flag = HIGH;
 }
 void registerCam1Time()
 {
+  frame1_count++;
   camera1_sync_flag = HIGH;
 }
 void registerCam0Leak()
