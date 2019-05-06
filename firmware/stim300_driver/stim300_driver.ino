@@ -21,6 +21,7 @@
 #include <ros.h>
 #include <ros/time.h>
 #include <usm_stim300_driver/UInt8MultiArrayStamped.h>
+#include <usm_stim300_driver/VISensorCommand.h>
 #include <sensor_msgs/TimeReference.h>
 #include <std_msgs/Header.h>
 
@@ -61,6 +62,33 @@ std_msgs::Header cam0_time_msg;
 std_msgs::Header cam1_time_msg;
 ros::Publisher cam0_time_publisher("cam0_time",&cam0_time_msg);
 ros::Publisher cam1_time_publisher("cam1_time",&cam1_time_msg);
+
+uint8_t frames_per_imu = 0;
+
+bool run_cameras = false;
+
+void commandCb(const usm_stim300_driver::VISensorCommandRequest& req, usm_stim300_driver::VISensorCommandResponse& resp)
+{
+  switch (req.command)
+  {
+    case 0:
+      run_cameras = false;
+      break;
+    case 1:
+      run_cameras = true;
+      break;
+    case 2:
+      frames_per_imu = req.data;
+      break;
+    default:
+      resp.result = false;
+      return;
+  }
+  resp.result = true;
+}
+
+ros::ServiceServer<usm_stim300_driver::VISensorCommandRequest, usm_stim300_driver::VISensorCommandResponse>
+    command_service("VI_command", &commandCb);
 
 byte buffer[63];
 byte first_received_datagram = HIGH;
@@ -138,6 +166,8 @@ void setup()
   nh.advertise(chatter);
   nh.advertise(cam0_time_publisher);
   nh.advertise(cam1_time_publisher);
+  nh.advertiseService<usm_stim300_driver::VISensorCommandRequest, usm_stim300_driver::VISensorCommandResponse>(
+      command_service);
 
   // slow start
   size_t start_time = millis();

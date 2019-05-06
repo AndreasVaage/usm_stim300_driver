@@ -9,11 +9,18 @@ find_package(catkin REQUIRED COMPONENTS
         sensor_msgs
         std_msgs
         message_generation
+        rosserial_arduino
+        rosserial_client
         )
 
 add_message_files(
-  FILES
-  UInt8MultiArrayStamped.msg
+        FILES
+        UInt8MultiArrayStamped.msg
+)
+
+add_service_files(
+        FILES
+        VISensorCommand.srv
 )
 
 generate_messages(
@@ -22,13 +29,17 @@ generate_messages(
 )
 
 catkin_package(
-        CATKIN_DEPENDS sensor_msgs message_runtime
+        CATKIN_DEPENDS
+        std_msgs
+        sensor_msgs
+        message_runtime
 )
 
 add_library(stim300_driver_lib
         src/driver_stim300.cpp
         src/datagram_parser.cpp
-        src/serial_unix.cpp)
+        src/serial_unix.cpp
+        )
 
 target_include_directories(stim300_driver_lib
         PUBLIC
@@ -39,14 +50,6 @@ target_include_directories(stim300_driver_lib
         ${catkin_INCLUDE_DIRS}
         )
 target_link_libraries(stim300_driver_lib ${catkin_LIBRARIES})
-
-find_package(catkin REQUIRED COMPONENTS
-        roscpp
-        sensor_msgs
-        )
-catkin_package(
-        CATKIN_DEPENDS sensor_msgs
-)
 
 add_executable(usm_stim300_driver_node src/stim300_driver_node.cpp)
 target_include_directories(usm_stim300_driver_node
