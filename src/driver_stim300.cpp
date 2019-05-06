@@ -82,7 +82,7 @@ double DriverStim300::getAverageTemp() const
   double sum{ 0 };
   uint8_t count{ 0 };
 
-  return count != 0 ? sum / count : std::numeric  _limits<double>::quiet_NaN();
+  return count != 0 ? sum / count : std::numeric_limits<double>::quiet_NaN();
 }
 
 void DriverStim300::datagramCallBack(const usm_stim300_driver::UInt8MultiArrayStamped& message)
