@@ -21,7 +21,7 @@
 #include <ros.h>
 #include <ros/time.h>
 #include <usm_stim300_driver/UInt8MultiArrayStamped.h>
-#include <usm_stim300_driver/VISensorCommand.h>
+#include <usm_stim300_driver/UInt8UInt8.h>
 #include <sensor_msgs/TimeReference.h>
 #include <std_msgs/Header.h>
 
@@ -67,7 +67,7 @@ uint8_t frames_per_imu = 0;
 
 bool run_cameras = false;
 
-void commandCb(const usm_stim300_driver::VISensorCommandRequest& req, usm_stim300_driver::VISensorCommandResponse& resp)
+void commandCb(const usm_stim300_driver::UInt8UInt8& req)
 {
   switch (req.command)
   {
@@ -81,14 +81,16 @@ void commandCb(const usm_stim300_driver::VISensorCommandRequest& req, usm_stim30
       frames_per_imu = req.data;
       break;
     default:
-      resp.result = false;
+      // resp.result = false;
       return;
   }
-  resp.result = true;
+  // Serial.print("Run cameras = ");
+  // Serial.println(run_cameras);
+  // Serial.print("fpIMU = ");
+  // Serial.println(frames_per_imu);
+  // resp.result = true;
 }
-
-ros::ServiceServer<usm_stim300_driver::VISensorCommandRequest, usm_stim300_driver::VISensorCommandResponse>
-    command_service("VI_command", &commandCb);
+ros::Subscriber<usm_stim300_driver::UInt8UInt8> sub_VI_command("VI_command", &commandCb);
 
 byte buffer[63];
 byte first_received_datagram = HIGH;
@@ -166,25 +168,16 @@ void setup()
   nh.advertise(chatter);
   nh.advertise(cam0_time_publisher);
   nh.advertise(cam1_time_publisher);
-  nh.advertiseService<usm_stim300_driver::VISensorCommandRequest, usm_stim300_driver::VISensorCommandResponse>(
-      command_service);
-
-  // slow start
-  size_t start_time = millis();
-  while (millis() - start_time < 30000)
-  {
-    update(100);
-    nh.spinOnce();
-  }
+  nh.subscribe(sub_VI_command);
 }
 
 void loop()
 {
-  update(10);
+  update(frames_per_imu, run_cameras);
   nh.spinOnce();
 }
 
-void update(int n_imu_per_cam_msg)
+void update(int n_imu_per_cam_msg, bool trigger_cameras)
 {
   if (stim_300_sync_flag == HIGH)
   {
@@ -238,7 +231,10 @@ void update(int n_imu_per_cam_msg)
 
   if (imu_counter >= n_imu_per_cam_msg)
   {
-    digitalWrite(camera_trigger_pin, HIGH);
+    if (trigger_cameras)
+    {
+      digitalWrite(camera_trigger_pin, HIGH);
+    }
     imu_counter = 0;
   }
   if (imu_counter == 5)

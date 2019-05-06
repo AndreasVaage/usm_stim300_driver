@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
         FILES
         UInt8MultiArrayStamped.msg
+        UInt8UInt8.msg
 )
 
 add_service_files(
