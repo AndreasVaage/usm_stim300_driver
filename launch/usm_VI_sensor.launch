@@ -1,0 +1,15 @@
+<launch>
+
+    <remap from="/cam0_time" to="/camera/left/camera_time"/>
+    <remap from="/cam1_time" to="/camera/right/camera_time"/>
+
+    <include file="$(find pointgrey_camera_driver)/launch/stereo.launch"/>
+
+    <include file="$(find rosserial_server)/launch/socket.launch"/>
+
+    <node name="usm_stim300_driver" pkg="usm_stim300_driver" type="usm_stim300_arduino_node" />
+
+
+
+
+</launch>
