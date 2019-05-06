@@ -12,6 +12,18 @@ or
     
 see launch file for available parameters.
 
+## Firmware
+
+The firmaware code is designed for teensy 3.2 microcontroller using the arduino framework.
+To program the microcontroller follow these steps:
+
+* Set up arduino with the Teensyduino plugin, see https://www.pjrc.com/teensy/teensyduino.html.
+* Build the rospackage ````catkin build --this ````
+* Delete the old arduino ros_lib ```rm -r ~/Arduino/libraries/ros_lib```
+* Create and export the ros_lib to your arduino library folder
+    ```rosrun rosserial_arduino make_libraries.py ~/Arduino/libraries```
+* Open firmware/stim300_driver/stim300_driver.ino in the arduino IDE and upload to the teensy microcontroller. 
+
 ## Communicate with STIM300 over terminal
 For testing and configuration during development it can be useful to comunicate with the STIM300 IMU directly over terminal.
 Here is a simple example for how to that using minicom.
@@ -21,7 +33,7 @@ Install minicom:
     sudo apt-get install minicom
 
 Look for device:
-
+    
     dmesg | grep tty
 
 Open minicom with setings:
