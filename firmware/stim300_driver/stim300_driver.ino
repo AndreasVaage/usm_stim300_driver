@@ -63,7 +63,7 @@ std_msgs::Header cam1_time_msg;
 ros::Publisher cam0_time_publisher("cam0_time",&cam0_time_msg);
 ros::Publisher cam1_time_publisher("cam1_time",&cam1_time_msg);
 
-uint8_t frames_per_imu = 0;
+uint8_t frames_per_imu = 10;
 
 bool run_cameras = false;
 
