@@ -1,5 +1,14 @@
+#include <utility>
 
 #include "driver_stim300.h"
+
+DriverStim300::DriverStim300(ros::NodeHandle& nh, sensor_msgs::Imu& imu_msg, SerialDriver& serial_driver):
+    DriverStim300(serial_driver)
+{
+  imu_msg_ = imu_msg;
+  datagram_sub_ = nh.subscribe("datagram", 10, &DriverStim300::datagramCallBack, this);
+  imu_publisher_ = nh.advertise<sensor_msgs::Imu>("imu/data_raw", 10);
+}
 
 DriverStim300::DriverStim300(SerialDriver& serial_driver, stim_300::DatagramIdentifier datagram_id,
                              stim_300::GyroOutputUnit gyro_output_unit, stim_300::AccOutputUnit acc_output_unit,
@@ -20,6 +29,7 @@ DriverStim300::DriverStim300(SerialDriver& serial_driver, stim_300::DatagramIden
 {
   serial_driver_.open(baudrate);
 }
+
 
 DriverStim300::~DriverStim300()
 {
@@ -72,7 +82,50 @@ double DriverStim300::getAverageTemp() const
   double sum{ 0 };
   uint8_t count{ 0 };
 
-  return count != 0 ? sum / count : std::numeric_limits<double>::quiet_NaN();
+  return count != 0 ? sum / count : std::numeric  _limits<double>::quiet_NaN();
+}
+
+void DriverStim300::datagramCallBack(const usm_stim300_driver::UInt8MultiArrayStamped& message)
+{
+  auto begin = message.data.cbegin();
+  auto it = std::next(begin);
+
+  if (*begin != stim_300::datagramIdentifierToRaw(datagram_id_))
+  {
+    ROS_WARN("STIM300: message does not start with correct datagram");
+    return;
+  }
+
+  // End codesection
+
+  no_internal_error_ = datagram_parser_.parseDatagram(it, sensor_data_);
+
+  checksum_is_ok_ = verifyChecksum(begin, it, sensor_data_.crc);
+
+  publishImuData(message.stamp);
+}
+
+void DriverStim300::publishImuData(ros::Time time)
+{
+    if (!isChecksumGood())
+    {
+      ROS_WARN("stim300 CRC error ");
+      return;
+    }
+
+    if (!isSensorStatusGood())
+    {
+      ROS_WARN("STIM300: Internal hardware error");
+      return;
+    }
+    imu_msg_.header.stamp = time;
+    imu_msg_.linear_acceleration.x = getAccX() + 0.0023;
+    imu_msg_.linear_acceleration.y = getAccY() + 0.05;
+    imu_msg_.linear_acceleration.z = getAccZ() + 0.027;
+    imu_msg_.angular_velocity.x = getGyroX();
+    imu_msg_.angular_velocity.y = getGyroY();
+    imu_msg_.angular_velocity.z = getGyroZ();
+    imu_publisher_.publish(imu_msg_);
 }
 
 bool DriverStim300::processPacket()

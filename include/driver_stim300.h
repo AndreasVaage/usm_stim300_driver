@@ -8,6 +8,9 @@
 #include "../src/serial_driver.h"
 #include <vector>
 #include <assert.h>
+#include "ros/ros.h"
+#include <usm_stim300_driver/UInt8MultiArrayStamped.h>
+#include "sensor_msgs/Imu.h"
 
 class DriverStim300
 {
@@ -19,6 +22,8 @@ public:
                 stim_300::InclOutputUnit incl_output_unit = stim_300::InclOutputUnit::ACCELERATION,
                 SerialDriver::BAUDRATE baudrate = SerialDriver::BAUDRATE::BAUD_921600,
                 uint16_t serial_read_timeout_ms = 1);
+  DriverStim300(ros::NodeHandle& nh, sensor_msgs::Imu& imu_msg, SerialDriver& serial_driver);
+
   ~DriverStim300();
   double getAccX() const;
   double getAccY() const;
@@ -32,6 +37,7 @@ public:
   bool isSensorStatusGood() const;
   uint8_t getInternalMeasurmentCounter() const;
   bool processPacket();
+  void datagramCallBack(const usm_stim300_driver::UInt8MultiArrayStamped& message);
 
 private:
   enum class Mode : uint8_t
@@ -41,6 +47,11 @@ private:
     Service
   };
   Mode mode_;
+
+  ros::Subscriber datagram_sub_;
+  ros::Publisher imu_publisher_;
+  sensor_msgs::Imu imu_msg_;
+  void publishImuData(ros::Time time);
 
   SerialDriver& serial_driver_;
   uint16_t serial_read_timeout_ms_;

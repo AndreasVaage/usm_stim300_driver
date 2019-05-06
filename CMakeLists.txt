@@ -3,6 +3,28 @@ project(usm_stim300_driver)
 
 set(CMAKE_CXX_STANDARD 14)
 
+
+find_package(catkin REQUIRED COMPONENTS
+        roscpp
+        sensor_msgs
+        std_msgs
+        message_generation
+        )
+
+add_message_files(
+  FILES
+  UInt8MultiArrayStamped.msg
+)
+
+generate_messages(
+        DEPENDENCIES
+        std_msgs
+)
+
+catkin_package(
+        CATKIN_DEPENDS sensor_msgs message_runtime
+)
+
 add_library(stim300_driver_lib
         src/driver_stim300.cpp
         src/datagram_parser.cpp
@@ -14,8 +36,9 @@ target_include_directories(stim300_driver_lib
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${catkin_INCLUDE_DIRS}
         )
-target_link_libraries(stim300_driver_lib)
+target_link_libraries(stim300_driver_lib ${catkin_LIBRARIES})
 
 find_package(catkin REQUIRED COMPONENTS
         roscpp
@@ -30,6 +53,12 @@ target_include_directories(usm_stim300_driver_node
         PRIVATE
         ${catkin_INCLUDE_DIRS})
 target_link_libraries(usm_stim300_driver_node PRIVATE stim300_driver_lib ${catkin_LIBRARIES})
+
+add_executable(usm_stim300_arduino_node src/stim300_arduino_node.cpp)
+target_include_directories(usm_stim300_arduino_node
+        PRIVATE
+        ${catkin_INCLUDE_DIRS})
+target_link_libraries(usm_stim300_arduino_node PRIVATE stim300_driver_lib ${catkin_LIBRARIES})
 
 
 if (CATKIN_ENABLE_TESTING)
