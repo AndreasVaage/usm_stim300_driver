@@ -23,7 +23,7 @@
 #include <usm_stim300_driver/UInt8MultiArrayStamped.h>
 #include <usm_stim300_driver/UInt8UInt8.h>
 #include <sensor_msgs/TimeReference.h>
-#include <std_msgs/Header.h>
+#include <wfov_camera_msgs/WFOVTrigger.h>
 
 const byte stim_300_TOV_pin = 2;
 //const byte stim_300_trigger_pin = 3;
@@ -58,8 +58,8 @@ ros::NodeHandle nh;
 usm_stim300_driver::UInt8MultiArrayStamped datagram_msg;
 ros::Publisher chatter("datagram", &datagram_msg);
 
-std_msgs::Header cam0_time_msg;
-std_msgs::Header cam1_time_msg;
+wfov_camera_msgs::WFOVTrigger cam0_time_msg;
+wfov_camera_msgs::WFOVTrigger cam1_time_msg;
 ros::Publisher cam0_time_publisher("cam0_time",&cam0_time_msg);
 ros::Publisher cam1_time_publisher("cam1_time",&cam1_time_msg);
 
@@ -79,6 +79,16 @@ void commandCb(const usm_stim300_driver::UInt8UInt8& req)
       break;
     case 2:
       frames_per_imu = req.data;
+      // if (req.data >= 100)
+      //{
+      //  attachInterrupt(digitalPinToInterrupt(camera0_sync_pin), registerCam0Time, FALLING);
+      //  attachInterrupt(digitalPinToInterrupt(camera1_sync_pin), registerCam1Time, FALLING);
+      //}
+      // else // we only need camera interupt while synchronizing
+      //{
+      //  detachInterrupt(digitalPinToInterrupt(camera0_sync_pin));
+      //  detachInterrupt(digitalPinToInterrupt(camera1_sync_pin));
+      //}
       break;
     default:
       // resp.result = false;
@@ -95,6 +105,8 @@ ros::Subscriber<usm_stim300_driver::UInt8UInt8> sub_VI_command("VI_command", &co
 byte buffer[63];
 byte first_received_datagram = HIGH;
 size_t n_read_bytes = 0;
+size_t cam_trigger_count = 0;
+ros::Time cam_trigger_time;
 uint8_t imu_counter = 0;
 
 bool waiting_for_last_camera = false;
@@ -158,11 +170,11 @@ void setup()
 
   datagram_msg.data = (uint8_t*) malloc(63 * sizeof(uint8_t));
   datagram_msg.data_length = 63;
-  
-  cam0_time_msg.frame_id = "cam0_link";
-  cam0_time_msg.seq = 0;
-  cam1_time_msg.frame_id = "cam1_link";
-  cam1_time_msg.seq = 0;
+
+  cam0_time_msg.header.frame_id = "cam0_link";
+  cam0_time_msg.header.seq = 0;
+  cam1_time_msg.header.frame_id = "cam1_link";
+  cam1_time_msg.header.seq = 0;
 
   // Start to be polite
   nh.advertise(chatter);
@@ -215,17 +227,21 @@ void update(int n_imu_per_cam_msg, bool trigger_cameras)
 
   if (camera0_sync_flag == HIGH)
   {
-    cam0_time_msg.stamp = nh.now();
+    cam0_time_msg.header.stamp = nh.now();
+    cam0_time_msg.header.seq = frame0_count;
+    cam0_time_msg.trigger_seq = cam_trigger_count;
+    cam0_time_msg.trigger_time = cam_trigger_time;
     cam0_time_publisher.publish( &cam0_time_msg);
-    cam0_time_msg.seq = frame0_count;
     camera0_sync_flag = LOW;
   }
 
   if (camera1_sync_flag == HIGH)
   {
-    cam1_time_msg.stamp = nh.now();
+    cam1_time_msg.header.stamp = nh.now();
+    cam1_time_msg.header.seq = frame1_count;
+    cam1_time_msg.trigger_seq = cam_trigger_count;
+    cam1_time_msg.trigger_time = cam_trigger_time;
     cam1_time_publisher.publish( &cam1_time_msg);
-    cam1_time_msg.seq = frame1_count;
     camera1_sync_flag = LOW;
   }
 
