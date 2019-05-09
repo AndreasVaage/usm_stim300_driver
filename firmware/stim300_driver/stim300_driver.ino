@@ -249,13 +249,15 @@ void update(int n_imu_per_cam_msg, bool trigger_cameras)
   {
     if (trigger_cameras)
     {
-      digitalWrite(camera_trigger_pin, HIGH);
+      digitalWrite(camera_trigger_pin, LOW);
+      cam_trigger_time = nh.now();
+      cam_trigger_count++;
     }
     imu_counter = 0;
   }
-  if (imu_counter == 5)
+  if (imu_counter == 1)
   {
-    digitalWrite(camera_trigger_pin, LOW);
+    digitalWrite(camera_trigger_pin, HIGH);
   }
 }
 
