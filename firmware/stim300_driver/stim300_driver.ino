@@ -133,7 +133,7 @@ void setup()
   HWSERIAL.setTimeout(2); // ms
 
   // Wait for the cameras to setup before connecting to ethernet
-  // Yes, we are this desperate
+  // Should not be necessary
   delay(5000);
 
   // Connect the Ethernet
@@ -205,7 +205,8 @@ void update(int n_imu_per_cam_msg, bool trigger_cameras)
         HWSERIAL.clear();
         first_received_datagram = LOW;
       }
-      else if (n_read_bytes = HWSERIAL.readBytes(datagram_msg.data, 63) == 63)
+      else if (n_read_bytes =
+                   HWSERIAL.readBytes(datagram_msg.data, 63) == 63)  // TODO: allow for varying datagram length
       {
         if (nh.connected())
         {

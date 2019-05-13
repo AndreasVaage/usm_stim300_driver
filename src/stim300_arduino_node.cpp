@@ -58,7 +58,7 @@ int main(int argc, char** argv)
   imu_msg_template.orientation.x = 0;
   imu_msg_template.orientation.y = 0;
   imu_msg_template.orientation.z = 0;
-  imu_msg_template.header.frame_id = "imu_0";
+  imu_msg_template.header.frame_id = "imu_link";
 
   NullSerialDriver dummy_serial_driver;
   DriverStim300 driver_stim300(node,imu_msg_template,dummy_serial_driver);
