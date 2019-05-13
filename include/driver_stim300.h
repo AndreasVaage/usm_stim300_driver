@@ -10,7 +10,8 @@
 #include <assert.h>
 #include "ros/ros.h"
 #include <usm_stim300_driver/UInt8MultiArrayStamped.h>
-#include "sensor_msgs/Imu.h"
+#include <sensor_msgs/Imu.h>
+#include <sensor_msgs/FluidPressure.h>
 
 class DriverStim300
 {
@@ -31,6 +32,7 @@ public:
   double getGyroX() const;
   double getGyroY() const;
   double getGyroZ() const;
+  double getAux() const;
   uint16_t getLatency_us() const;
   double getAverageTemp() const;
   bool isChecksumGood() const;
@@ -50,7 +52,9 @@ private:
 
   ros::Subscriber datagram_sub_;
   ros::Publisher imu_publisher_;
+  ros::Publisher depth_publisher_;
   sensor_msgs::Imu imu_msg_;
+  sensor_msgs::FluidPressure pressure_msg_;
   void publishImuData(ros::Time time);
 
   SerialDriver& serial_driver_;

@@ -8,6 +8,8 @@ DriverStim300::DriverStim300(ros::NodeHandle& nh, sensor_msgs::Imu& imu_msg, Ser
   imu_msg_ = imu_msg;
   datagram_sub_ = nh.subscribe("datagram", 10, &DriverStim300::datagramCallBack, this);
   imu_publisher_ = nh.advertise<sensor_msgs::Imu>("imu/data_raw", 10);
+  depth_publisher_ = nh.advertise<sensor_msgs::FluidPressure>("depth/data_raw", 10);
+  pressure_msg_.header.frame_id = "pressure_link";
 }
 
 DriverStim300::DriverStim300(SerialDriver& serial_driver, stim_300::DatagramIdentifier datagram_id,
@@ -59,6 +61,10 @@ double DriverStim300::getGyroY() const
 double DriverStim300::getGyroZ() const
 {
   return sensor_data_.gyro[2];
+}
+double DriverStim300::getAux() const
+{
+  return sensor_data_.aux;
 }
 uint16_t DriverStim300::getLatency_us() const
 {
@@ -127,6 +133,10 @@ void DriverStim300::publishImuData(ros::Time time)
     imu_msg_.angular_velocity.y = getGyroY();
     imu_msg_.angular_velocity.z = getGyroZ();
     imu_publisher_.publish(imu_msg_);
+
+    pressure_msg_.header.stamp = time;
+    pressure_msg_.fluid_pressure = getAux() * 1.0 + 0.0;
+    depth_publisher_.publish(pressure_msg_);
 }
 
 bool DriverStim300::processPacket()
