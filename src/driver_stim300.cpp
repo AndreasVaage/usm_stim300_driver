@@ -118,6 +118,7 @@ void DriverStim300::publishImuData(ros::Time time)
       ROS_WARN("STIM300: Internal hardware error");
       return;
     }
+    time = time - ros::Duration(0, getLatency_us() * 1000);  // convert from microseconds to nano seconds
     imu_msg_.header.stamp = time;
     imu_msg_.linear_acceleration.x = getAccX();
     imu_msg_.linear_acceleration.y = getAccY();
