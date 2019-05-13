@@ -119,9 +119,9 @@ void DriverStim300::publishImuData(ros::Time time)
       return;
     }
     imu_msg_.header.stamp = time;
-    imu_msg_.linear_acceleration.x = getAccX() + 0.0023;
-    imu_msg_.linear_acceleration.y = getAccY() + 0.05;
-    imu_msg_.linear_acceleration.z = getAccZ() + 0.027;
+    imu_msg_.linear_acceleration.x = getAccX();
+    imu_msg_.linear_acceleration.y = getAccY();
+    imu_msg_.linear_acceleration.z = getAccZ();
     imu_msg_.angular_velocity.x = getGyroX();
     imu_msg_.angular_velocity.y = getGyroY();
     imu_msg_.angular_velocity.z = getGyroZ();
