@@ -125,6 +125,12 @@ void DriverStim300::publishImuData(ros::Time time)
       return;
     }
     time = time - ros::Duration(0, getLatency_us() * 1000);  // convert from microseconds to nano seconds
+
+    if (ros::Time::now() - time > ros::Duration(1, 0))
+    {
+      ROS_WARN("STIM300: Not realtime. More than 1 sec latency");
+      return;
+    }
     imu_msg_.header.stamp = time;
     imu_msg_.linear_acceleration.x = getAccX();
     imu_msg_.linear_acceleration.y = getAccY();
