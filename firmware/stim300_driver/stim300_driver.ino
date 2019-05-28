@@ -65,30 +65,35 @@ ros::Publisher cam1_time_publisher("cam1_time",&cam1_time_msg);
 
 uint8_t frames_per_imu = 10;
 
-bool run_cameras = false;
+enum state_t
+{
+  run_cameras,
+  sync_cameras,
+  standby
+};
+state_t state = standby;
 
 void commandCb(const usm_stim300_driver::UInt8UInt8& req)
 {
+  if (state == sync_cameras and req.command != 3)
+  {
+    detachInterrupt(digitalPinToInterrupt(camera0_sync_pin));
+    detachInterrupt(digitalPinToInterrupt(camera1_sync_pin));
+  }
   switch (req.command)
   {
     case 0:
-      run_cameras = false;
+      state = standby;
       break;
     case 1:
-      run_cameras = true;
+      state = run_cameras;
+      frames_per_imu = req.data;
       break;
     case 2:
-      frames_per_imu = req.data;
-      // if (req.data >= 100)
-      //{
-      //  attachInterrupt(digitalPinToInterrupt(camera0_sync_pin), registerCam0Time, FALLING);
-      //  attachInterrupt(digitalPinToInterrupt(camera1_sync_pin), registerCam1Time, FALLING);
-      //}
-      // else // we only need camera interupt while synchronizing
-      //{
-      //  detachInterrupt(digitalPinToInterrupt(camera0_sync_pin));
-      //  detachInterrupt(digitalPinToInterrupt(camera1_sync_pin));
-      //}
+      state = sync_cameras;
+      frames_per_imu = 250;
+      attachInterrupt(digitalPinToInterrupt(camera0_sync_pin), registerCam0Time, FALLING);
+      attachInterrupt(digitalPinToInterrupt(camera1_sync_pin), registerCam1Time, FALLING);
       break;
     default:
       // resp.result = false;
@@ -120,11 +125,10 @@ void setup()
   pinMode(camera1_sync_pin, INPUT_PULLUP);
   pinMode(camera_trigger_pin, OUTPUT);
   attachInterrupt(digitalPinToInterrupt(stim_300_TOV_pin), registerIMUTime, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(camera0_sync_pin), registerCam0Time, FALLING);
-  attachInterrupt(digitalPinToInterrupt(camera1_sync_pin), registerCam1Time, FALLING);
-  attachInterrupt(digitalPinToInterrupt(camera0_not_leak_pin), registerCam0Leak, FALLING);
-  attachInterrupt(digitalPinToInterrupt(camera1_not_leak_pin), registerCam1Leak, FALLING);
-
+  // attachInterrupt(digitalPinToInterrupt(camera0_sync_pin), registerCam0Time, FALLING);
+  // attachInterrupt(digitalPinToInterrupt(camera1_sync_pin), registerCam1Time, FALLING);
+  // attachInterrupt(digitalPinToInterrupt(camera0_not_leak_pin), registerCam0Leak, FALLING);
+  // attachInterrupt(digitalPinToInterrupt(camera1_not_leak_pin), registerCam1Leak, FALLING);
 
   // Use serial to monitor the process
   //Serial.begin(115200);
@@ -134,7 +138,7 @@ void setup()
 
   // Wait for the cameras to setup before connecting to ethernet
   // Should not be necessary
-  delay(5000);
+  delay(1000);
 
   // Connect the Ethernet
   Ethernet.begin(mac, ip);
@@ -185,11 +189,11 @@ void setup()
 
 void loop()
 {
-  update(frames_per_imu, run_cameras);
+  update(frames_per_imu, state);
   nh.spinOnce();
 }
 
-void update(int n_imu_per_cam_msg, bool trigger_cameras)
+void update(int n_imu_per_cam_msg, state_t state)
 {
   if (stim_300_sync_flag == HIGH)
   {
@@ -248,7 +252,7 @@ void update(int n_imu_per_cam_msg, bool trigger_cameras)
 
   if (imu_counter >= n_imu_per_cam_msg)
   {
-    if (trigger_cameras)
+    if (state == run_cameras or state == sync_cameras)
     {
       digitalWrite(camera_trigger_pin, LOW);
       cam_trigger_time = nh.now();
