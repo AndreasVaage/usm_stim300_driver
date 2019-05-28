@@ -141,7 +141,7 @@ void DriverStim300::publishImuData(ros::Time time)
     imu_publisher_.publish(imu_msg_);
 
     pressure_msg_.header.stamp = time;
-    pressure_msg_.fluid_pressure = getAux() * 1.0 + 0.0;
+    pressure_msg_.fluid_pressure = getAux() * 8.857 - 8.857 * 1.613;
     depth_publisher_.publish(pressure_msg_);
 }
 
