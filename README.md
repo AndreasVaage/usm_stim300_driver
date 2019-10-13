@@ -6,11 +6,17 @@ Run with:
 
     rosrun driver_stim300 stim300_driver_node
 
-or
+or to run the entire visual inertial sensor:
 
-    roslaunch driver_stim300 stim300_driver.launch
+    roslaunch usm_stim300_driver usm_VI_sensor.launch
     
 see launch file for available parameters.
+
+## Comunicate with teensy
+
+The teensy can be controlled by sending a ros message at the /VI_command topic. The first number, command, can be either 0 or 1 to turn it on or off, if 1 the second number, data, represents the number of imu messages between each image. The IMU rate is 125 Hz, the default is 7 imu messgages for each image, giving fps = 125/7 = 17.85.
+
+    rostopic pub /VI_command usm_stim300_driver/UInt8UInt8 "command: 1 data: 7" -1
 
 ## Firmware
 
