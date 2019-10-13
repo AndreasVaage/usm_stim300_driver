@@ -42,68 +42,46 @@ volatile byte camera1_leak = LOW;
 volatile unsigned long frame0_count = 0;
 volatile unsigned long frame1_count = 0;
 
-// Set the shield settings
+// Set the ethernet mac and ip adress for the teensy
 byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 IPAddress ip(169, 254, 0, 177); // think it have to be same subnet as server
 
 // Set the rosserial socket server IP address
 IPAddress server(169,254,0,64);
-//IPAddress server(10,22,74,185);
+
 // Set the rosserial socket server port
 const uint16_t serverPort = 11411;
 
 ros::NodeHandle nh;
-// Make a chatter publisher
+// Make a datagram publisher
 
 usm_stim300_driver::UInt8MultiArrayStamped datagram_msg;
-ros::Publisher chatter("datagram", &datagram_msg);
+ros::Publisher datagram_publisher("datagram", &datagram_msg);
 
-wfov_camera_msgs::WFOVTrigger cam0_time_msg;
-wfov_camera_msgs::WFOVTrigger cam1_time_msg;
-ros::Publisher cam0_time_publisher("cam0_time",&cam0_time_msg);
-ros::Publisher cam1_time_publisher("cam1_time",&cam1_time_msg);
-
-uint8_t frames_per_imu = 10;
+uint8_t frames_per_imu = 7;
 
 enum state_t
 {
-  run_cameras,
-  sync_cameras,
+  run,
   standby
 };
-state_t state = standby;
+state_t state = run;
 
-void commandCb(const usm_stim300_driver::UInt8UInt8& req)
+void commandCb(const usm_stim300_driver::UInt8UInt8& request)
 {
-  if (state == sync_cameras and req.command != 3)
-  {
-    detachInterrupt(digitalPinToInterrupt(camera0_sync_pin));
-    detachInterrupt(digitalPinToInterrupt(camera1_sync_pin));
-  }
-  switch (req.command)
+  switch (request.command)
   {
     case 0:
       state = standby;
       break;
     case 1:
-      state = run_cameras;
-      frames_per_imu = req.data;
-      break;
-    case 2:
-      state = sync_cameras;
-      frames_per_imu = 250;
-      attachInterrupt(digitalPinToInterrupt(camera0_sync_pin), registerCam0Time, FALLING);
-      attachInterrupt(digitalPinToInterrupt(camera1_sync_pin), registerCam1Time, FALLING);
+      state = run;
+      frames_per_imu = request.data;
       break;
     default:
       // resp.result = false;
       return;
   }
-  // Serial.print("Run cameras = ");
-  // Serial.println(run_cameras);
-  // Serial.print("fpIMU = ");
-  // Serial.println(frames_per_imu);
-  // resp.result = true;
 }
 ros::Subscriber<usm_stim300_driver::UInt8UInt8> sub_VI_command("VI_command", &commandCb);
 
@@ -121,12 +99,8 @@ void setup()
   pinMode(stim_300_TOV_pin, INPUT);
   pinMode(camera0_not_leak_pin, INPUT_PULLUP);
   pinMode(camera1_not_leak_pin, INPUT_PULLUP);
-  pinMode(camera0_sync_pin, INPUT_PULLUP);
-  pinMode(camera1_sync_pin, INPUT_PULLUP);
   pinMode(camera_trigger_pin, OUTPUT);
   attachInterrupt(digitalPinToInterrupt(stim_300_TOV_pin), registerIMUTime, CHANGE);
-  // attachInterrupt(digitalPinToInterrupt(camera0_sync_pin), registerCam0Time, FALLING);
-  // attachInterrupt(digitalPinToInterrupt(camera1_sync_pin), registerCam1Time, FALLING);
   // attachInterrupt(digitalPinToInterrupt(camera0_not_leak_pin), registerCam0Leak, FALLING);
   // attachInterrupt(digitalPinToInterrupt(camera1_not_leak_pin), registerCam1Leak, FALLING);
 
@@ -137,8 +111,7 @@ void setup()
   HWSERIAL.setTimeout(2); // ms
 
   // Wait for the cameras to setup before connecting to ethernet
-  // Should not be necessary
-  delay(1000);
+  delay(5000);
 
   // Connect the Ethernet
   Ethernet.begin(mac, ip);
@@ -171,19 +144,11 @@ void setup()
   // Another way to get IP
   //Serial.print("IP = ");
   //Serial.println(nh.getHardware()->getLocalIP());
-
+  // TODO; allow for varying datagram lenght
   datagram_msg.data = (uint8_t*) malloc(63 * sizeof(uint8_t));
   datagram_msg.data_length = 63;
 
-  cam0_time_msg.header.frame_id = "cam0_link";
-  cam0_time_msg.header.seq = 0;
-  cam1_time_msg.header.frame_id = "cam1_link";
-  cam1_time_msg.header.seq = 0;
-
-  // Start to be polite
-  nh.advertise(chatter);
-  nh.advertise(cam0_time_publisher);
-  nh.advertise(cam1_time_publisher);
+  nh.advertise(datagram_publisher);
   nh.subscribe(sub_VI_command);
 }
 
@@ -212,9 +177,9 @@ void update(int n_imu_per_cam_msg, state_t state)
       else if (n_read_bytes =
                    HWSERIAL.readBytes(datagram_msg.data, 63) == 63)  // TODO: allow for varying datagram length
       {
-        if (nh.connected())
+        if (nh.connected() and state == run)
         {
-          chatter.publish( &datagram_msg );
+          datagram_publisher.publish( &datagram_msg );
         }
         else
         {
@@ -230,29 +195,9 @@ void update(int n_imu_per_cam_msg, state_t state)
     stim_300_sync_flag = LOW;
   }
 
-  if (camera0_sync_flag == HIGH)
-  {
-    cam0_time_msg.header.stamp = nh.now();
-    cam0_time_msg.header.seq = frame0_count;
-    cam0_time_msg.trigger_seq = cam_trigger_count;
-    cam0_time_msg.trigger_time = cam_trigger_time;
-    cam0_time_publisher.publish( &cam0_time_msg);
-    camera0_sync_flag = LOW;
-  }
-
-  if (camera1_sync_flag == HIGH)
-  {
-    cam1_time_msg.header.stamp = nh.now();
-    cam1_time_msg.header.seq = frame1_count;
-    cam1_time_msg.trigger_seq = cam_trigger_count;
-    cam1_time_msg.trigger_time = cam_trigger_time;
-    cam1_time_publisher.publish( &cam1_time_msg);
-    camera1_sync_flag = LOW;
-  }
-
   if (imu_counter >= n_imu_per_cam_msg)
   {
-    if (state == run_cameras or state == sync_cameras)
+    if (state == run)
     {
       digitalWrite(camera_trigger_pin, LOW);
       cam_trigger_time = nh.now();
@@ -269,16 +214,6 @@ void update(int n_imu_per_cam_msg, state_t state)
 void registerIMUTime()
 {
   stim_300_sync_flag = HIGH;
-}
-void registerCam0Time()
-{
-  frame0_count++;
-  camera0_sync_flag = HIGH;
-}
-void registerCam1Time()
-{
-  frame1_count++;
-  camera1_sync_flag = HIGH;
 }
 void registerCam0Leak()
 {

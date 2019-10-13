@@ -127,9 +127,9 @@ void DriverStim300::publishImuData(ros::Time time)
 
     // if (external_trigger_mode_)
     //{
-    //  time = time - ros::Duration(0, getLatency_us() * 1000);  // convert from microseconds to nano seconds
+    time = time - ros::Duration(0, getLatency_us() * 1000);  // convert from microseconds to nano seconds
     //}
-    
+
     if (ros::Time::now() - time > ros::Duration(1, 0))
     {
       ROS_WARN("STIM300: Not realtime. More than 1 sec latency");
@@ -145,7 +145,8 @@ void DriverStim300::publishImuData(ros::Time time)
     imu_publisher_.publish(imu_msg_);
 
     pressure_msg_.header.stamp = time;
-    pressure_msg_.fluid_pressure = getAux() * 8.857 - 8.857 * 1.613;
+    //pressure_msg_.fluid_pressure = getAux() * 8.857 - 8.857 * 1.613;
+    pressure_msg_.fluid_pressure = getAux()*9.319 - 15.15;
     depth_publisher_.publish(pressure_msg_);
 }
 
