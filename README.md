@@ -2,6 +2,10 @@
 # STIM 300
 https://www.sensonor.com/products/inertial-measurement-units/stim300/
 
+## Dependensies
+
+https://github.com/ros-drivers/rosserial
+
 Run with:
 
     rosrun driver_stim300 stim300_driver_node
